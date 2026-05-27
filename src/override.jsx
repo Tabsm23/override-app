@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { supabase } from "./supabase";
@@ -171,6 +171,107 @@ This is a significant document. Treat it as such. Reflect back the most powerful
   },
 ];
 
+const TOOL_LOOKUP = {};
+const TASK_LOOKUP = {};
+CHAPTERS.forEach((chapter) => {
+  chapter.tools.forEach((tool) => {
+    TOOL_LOOKUP[`${chapter.id}:${tool.id}`] = { chapter, tool };
+  });
+  chapter.weeklyTasks.forEach((task) => {
+    TASK_LOOKUP[task.id] = { chapter, task };
+  });
+});
+
+function entrySortKey(date, time) {
+  if (!date) return 0;
+  const timePart = time || "12:00";
+  let parsed = Date.parse(time ? `${date} ${timePart}` : date);
+  if (Number.isNaN(parsed) && !/\d{4}/.test(date)) {
+    parsed = Date.parse(`${date} ${new Date().getFullYear()} ${timePart}`);
+  }
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function buildAllJournalEntries({ toolEntries, journalEntries, taskNotes, urgeLog, weatherLog }) {
+  const items = [];
+
+  Object.entries(toolEntries || {}).forEach(([key, entries]) => {
+    const meta = TOOL_LOOKUP[key];
+    if (!meta) return;
+    const { chapter, tool } = meta;
+    (entries || []).forEach((e, i) => {
+      items.push({
+        id: `tool-${key}-${i}-${e.date}-${e.time || ""}`,
+        sortKey: entrySortKey(e.date, e.time),
+        section: `Chapter ${chapter.number} · ${chapter.name}`,
+        source: tool.name,
+        date: e.date,
+        time: e.time,
+        text: e.text,
+        reflection: e.reflection || null,
+      });
+    });
+  });
+
+  (journalEntries || []).forEach((e, i) => {
+    items.push({
+      id: `ritual-${i}-${e.date}`,
+      sortKey: entrySortKey(e.date),
+      section: "Daily Ritual",
+      source: "Journal entry",
+      date: e.date,
+      text: e.text,
+      meta: e.prompt,
+    });
+  });
+
+  Object.entries(taskNotes || {}).forEach(([taskId, notes]) => {
+    const meta = TASK_LOOKUP[taskId];
+    const taskLabel = meta
+      ? (meta.task.text.length > 90 ? `${meta.task.text.slice(0, 90)}…` : meta.task.text)
+      : "Task note";
+    (notes || []).forEach((n, i) => {
+      items.push({
+        id: `task-${taskId}-${i}-${n.date}-${n.time || ""}`,
+        sortKey: entrySortKey(n.date, n.time),
+        section: meta ? `Weekly Task · ${meta.chapter.name}` : "Weekly Task",
+        source: taskLabel,
+        date: n.date,
+        time: n.time,
+        text: n.text,
+      });
+    });
+  });
+
+  (urgeLog || []).forEach((e, i) => {
+    items.push({
+      id: `pause-${i}-${e.date}-${e.time || ""}`,
+      sortKey: entrySortKey(e.date, e.time),
+      section: "The Pause",
+      source: "Held the line",
+      date: e.date,
+      time: e.time,
+      text: e.text,
+    });
+  });
+
+  (weatherLog || []).forEach((e, i) => {
+    const body = e.note?.trim() ? e.note : `${e.icon} ${e.label}`;
+    items.push({
+      id: `weather-${i}-${e.date}-${e.time || ""}`,
+      sortKey: entrySortKey(e.date, e.time),
+      section: "Emotional Weather",
+      source: e.label,
+      date: e.date,
+      time: e.time,
+      text: body,
+      meta: e.note?.trim() ? `${e.icon} ${e.label}` : null,
+    });
+  });
+
+  return items.sort((a, b) => b.sortKey - a.sortKey);
+}
+
 const WEATHER_OPTIONS = [
   { id: "storm", label: "Stormy", icon: "⛈", desc: "Overwhelmed, tearful, heavy" },
   { id: "fog", label: "Foggy", icon: "🌫", desc: "Numb, disconnected, unclear" },
@@ -236,12 +337,12 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .welcome-eyebrow { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.25em; color: var(--gold); text-transform: uppercase; margin-bottom: 3rem; }
 .welcome-rule { width: 1px; height: 60px; background: linear-gradient(to bottom, transparent, var(--gold-dim), transparent); margin: 0 auto 3rem; animation: grow 1.5s ease 0.5s both; }
 .welcome-headline { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(2.2rem, 6vw, 3.8rem); font-weight: 300; font-style: italic; color: var(--paper); line-height: 1.5; margin-bottom: 1.5rem; opacity: 0; animation: fadeUp 1s ease 0.6s forwards; }
-.welcome-body { font-size: 1.05rem; line-height: 1.8; color: var(--text-faint); max-width: 520px; margin: 0 auto 1.5rem; opacity: 0; animation: fadeUp 1s ease 0.9s forwards; }
+.welcome-body { font-size: 1.25rem; line-height: 1.8; color: var(--text-faint); max-width: 520px; margin: 0 auto 1.5rem; opacity: 0; animation: fadeUp 1s ease 0.9s forwards; }
 .welcome-features { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 2rem auto; max-width: 580px; text-align: left; opacity: 0; animation: fadeUp 1s ease 1.1s forwards; }
 @media (max-width: 520px) { .welcome-features { grid-template-columns: 1fr; } }
 .feature-pill { background: rgba(196,144,144,0.05); border: 1px solid var(--border); padding: 0.85rem 1rem; display: flex; align-items: flex-start; gap: 0.75rem; }
 .feature-pill-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
-.feature-pill-text { font-size: 0.82rem; line-height: 1.5; color: var(--text-faint); }
+.feature-pill-text { font-size: 1.1rem; line-height: 1.5; color: var(--text-faint); }
 .feature-pill-label { font-family: 'DM Mono', monospace; font-size: 0.52rem; letter-spacing: 0.18em; color: var(--gold); text-transform: uppercase; display: block; margin-bottom: 0.25rem; }
 .btn-begin { display: inline-flex; align-items: center; gap: 0.75rem; background: transparent; border: 1px solid var(--gold-dim); color: var(--paper); font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1rem; letter-spacing: 0.15em; padding: 0.9rem 2.5rem; cursor: pointer; transition: all 0.3s ease; margin-top: 0.5rem; opacity: 0; animation: fadeUp 1s ease 1.3s forwards; position: relative; overflow: hidden; text-decoration: none; }
 .btn-begin::before { content: ''; position: absolute; inset: 0; background: rgba(196,144,144,0.08); transform: translateX(-100%); transition: transform 0.4s ease; }
@@ -290,7 +391,7 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .chapter-map { padding: 2.5rem 2rem; max-width: 960px; margin: 0 auto; width: 100%; }
 .map-header { text-align: center; margin-bottom: 2.5rem; }
 .map-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 300; color: var(--paper); margin-bottom: 0.4rem; }
-.map-subtitle { font-size: 1rem; color: var(--text-faint); font-style: italic; margin-bottom: 1.5rem; }
+.map-subtitle { font-size: 1.25rem; color: var(--text-faint); font-style: italic; margin-bottom: 1.5rem; }
 .progress-summary { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
 .progress-label { font-family: 'DM Mono', monospace; font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-faint); }
 .progress-count { font-family: 'DM Mono', monospace; font-size: 0.55rem; color: var(--gold-dim); }
@@ -305,8 +406,8 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .chapter-number { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 0.75rem; letter-spacing: 0.3em; color: var(--text-faint); margin-bottom: 0.6rem; font-style: italic; }
 .chapter-icon { font-size: 1.4rem; margin-bottom: 0.8rem; display: block; }
 .chapter-name { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.7rem; font-weight: 300; color: var(--paper); margin-bottom: 0.25rem; }
-.chapter-tagline { font-size: 0.82rem; color: var(--text-faint); font-style: italic; margin-bottom: 1rem; }
-.chapter-desc { font-size: 0.88rem; line-height: 1.7; color: var(--text-dim); }
+.chapter-tagline { font-size: 1.1rem; color: var(--text-faint); font-style: italic; margin-bottom: 1rem; }
+.chapter-desc { font-size: 1rem; line-height: 1.7; color: var(--text-dim); }
 .chapter-dots { margin-top: 1.25rem; display: flex; gap: 0.35rem; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-strong); }
 .dot.done { background: var(--gold); }
@@ -318,8 +419,8 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .chapter-header { display: flex; align-items: flex-start; gap: 1.5rem; margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
 .ch-icon { font-size: 2.5rem; line-height: 1; flex-shrink: 0; }
 .ch-text h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 300; color: var(--paper); line-height: 1.1; }
-.ch-text .roman { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 0.78rem; letter-spacing: 0.3em; color: var(--gold-dim); display: block; margin-bottom: 0.35rem; font-style: italic; }
-.ch-text p { font-size: 0.93rem; line-height: 1.75; color: var(--text-dim); margin-top: 0.65rem; max-width: 520px; }
+.ch-text .roman { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 0.95rem; letter-spacing: 0.3em; color: var(--gold-dim); display: block; margin-bottom: 0.35rem; font-style: italic; }
+.ch-text p { font-size: 1.1rem; line-height: 1.75; color: var(--text-dim); margin-top: 0.65rem; max-width: 520px; }
 
 /* DETAIL COLUMNS */
 .detail-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
@@ -336,7 +437,7 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .task-item.done .task-check { background: var(--gold-dim); border-color: var(--gold-dim); }
 .task-check-inner { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); opacity: 0; transition: opacity 0.2s; }
 .task-item.done .task-check-inner { opacity: 1; }
-.task-text { font-size: 0.93rem; line-height: 1.65; color: var(--text-dim); }
+.task-text { font-size: 1.1rem; line-height: 1.65; color: var(--text-dim); }
 .task-item.done .task-text { text-decoration: line-through; color: var(--text-faint); }
 .tasks-unlock-prompt {
   font-family: 'DM Mono', monospace;
@@ -355,13 +456,13 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .task-expand-btn { background: transparent; border: none; color: var(--text-faint); font-family: 'DM Mono', monospace; font-size: 0.52rem; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; padding: 0.35rem 0 0 1.85rem; transition: color 0.2s; display: block; text-align: left; }
 .task-expand-btn:hover { color: var(--gold); }
 .task-notes-area { padding: 0.85rem 0.85rem 0.85rem 1.85rem; border-top: 1px solid var(--border); margin-top: 0.5rem; animation: fadeUp 0.25s ease; }
-.task-note-textarea { width: 100%; min-height: 90px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); color: var(--paper); font-family: 'Crimson Pro', Georgia, serif; font-size: 0.95rem; line-height: 1.75; padding: 0.75rem 1rem; resize: vertical; outline: none; transition: border-color 0.25s; caret-color: var(--gold); margin-bottom: 0.6rem; }
+.task-note-textarea { width: 100%; min-height: 90px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); color: var(--paper); font-family: 'Crimson Pro', Georgia, serif; font-size: 1.1rem; line-height: 1.75; padding: 0.75rem 1rem; resize: vertical; outline: none; transition: border-color 0.25s; caret-color: var(--gold); margin-bottom: 0.6rem; }
 .task-note-textarea:focus { border-color: var(--border-strong); }
 .task-note-textarea::placeholder { color: var(--text-faint); font-style: italic; }
 .task-saved-notes { margin-top: 0.85rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .task-note-entry { border-left: 2px solid var(--border-strong); padding: 0.5rem 0.75rem; }
 .task-note-entry-date { font-family: 'DM Mono', monospace; font-size: 0.48rem; letter-spacing: 0.12em; color: var(--gold-dim); margin-bottom: 0.3rem; }
-.task-note-entry-text { font-size: 0.88rem; line-height: 1.65; color: var(--text-dim); }
+.task-note-entry-text { font-size: 1rem; line-height: 1.65; color: var(--text-dim); }
 
 /* TOOLS */
 .tools-list { display: flex; flex-direction: column; gap: 1rem; }
@@ -373,25 +474,25 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .tool-left { flex: 1; }
 .tool-icon { font-size: 1rem; color: var(--gold-dim); margin-bottom: 0.4rem; display: block; }
 .tool-name { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.3rem; font-weight: 400; color: var(--paper); margin-bottom: 0.15rem; }
-.tool-sub { font-size: 0.88rem; color: var(--text-faint); font-style: italic; }
+.tool-sub { font-size: 1.1rem; color: var(--text-faint); font-style: italic; }
 .tool-badge { font-family: 'DM Mono', monospace; font-size: 0.5rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.25rem 0.55rem; border: 1px solid var(--border); color: var(--text-faint); flex-shrink: 0; }
 .tool-badge.done { color: var(--gold); border-color: rgba(196,168,122,0.4); }
 .tool-insight { background: rgba(196,144,144,0.04); border-left: 2px solid var(--gold-dim); padding: 0.65rem 0.9rem; margin-top: 0.65rem; }
 .insight-label { font-family: 'DM Mono', monospace; font-size: 0.48rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 0.3rem; }
-.tool-insight p { font-size: 0.88rem; line-height: 1.7; color: var(--text-dim); font-style: italic; }
+.tool-insight p { font-size: 1.1rem; line-height: 1.7; color: var(--text-dim); font-style: italic; }
 
 /* WORKSPACE */
 .workspace { max-width: 760px; margin: 0 auto; padding: 2.5rem 2rem; width: 100%; animation: fadeUp 0.4s ease; }
 .ws-chapter { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 0.65rem; }
 .ws-name { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 300; color: var(--paper); margin-bottom: 0.25rem; }
-.ws-sub { font-size: 0.92rem; color: var(--text-faint); font-style: italic; margin-bottom: 2rem; }
+.ws-sub { font-size: 1.1rem; color: var(--text-faint); font-style: italic; margin-bottom: 2rem; }
 .insight-box { background: rgba(196,144,144,0.04); border: 1px solid var(--border); border-left: 2px solid var(--gold-dim); padding: 0.95rem 1.15rem; margin-bottom: 2rem; }
 .insight-box .insight-label { margin-bottom: 0.35rem; }
-.insight-box p { font-size: 0.92rem; line-height: 1.75; color: var(--text-dim); font-style: italic; }
+.insight-box p { font-size: 1.1rem; line-height: 1.75; color: var(--text-dim); font-style: italic; }
 .ws-rule { height: 1px; background: linear-gradient(to right, var(--gold-dim), transparent); margin: 0 0 1.75rem; }
 .prompt-label { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 0.65rem; }
-.prompt-text { font-size: 1rem; line-height: 1.8; color: var(--text-dim); margin-bottom: 1.5rem; white-space: pre-line; }
-.ws-textarea { width: 100%; min-height: 210px; background: rgba(255,255,255,0.025); border: 1px solid var(--border); color: var(--paper); font-family: 'Crimson Pro', Georgia, serif; font-size: 1.05rem; line-height: 1.8; padding: 1.1rem 1.4rem; resize: vertical; outline: none; transition: border-color 0.3s; caret-color: var(--gold); }
+.prompt-text { font-size: 1.25rem; line-height: 1.8; color: var(--text-dim); margin-bottom: 1.5rem; white-space: pre-line; }
+.ws-textarea { width: 100%; min-height: 210px; background: rgba(255,255,255,0.025); border: 1px solid var(--border); color: var(--paper); font-family: 'Crimson Pro', Georgia, serif; font-size: 1.25rem; line-height: 1.8; padding: 1.1rem 1.4rem; resize: vertical; outline: none; transition: border-color 0.3s; caret-color: var(--gold); }
 .ws-textarea:focus { border-color: var(--border-strong); }
 .ws-textarea::placeholder { color: var(--text-faint); font-style: italic; }
 .ws-actions { display: flex; gap: 1rem; margin-top: 1rem; align-items: center; flex-wrap: wrap; }
@@ -405,7 +506,7 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .ai-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.1rem; }
 .ai-label { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dim); }
 .ai-line { flex: 1; height: 1px; background: linear-gradient(to right, var(--border-strong), transparent); }
-.ai-body { font-size: 1.05rem; line-height: 1.95; color: var(--text-dim); white-space: pre-wrap; font-style: italic; padding: 1.4rem; border: 1px solid var(--border); border-left: 2px solid var(--gold-dim); background: rgba(196,144,144,0.03); }
+.ai-body { font-size: 1.2rem; line-height: 1.95; color: var(--text-dim); white-space: pre-wrap; font-style: normal; padding: 1.4rem; border: 1px solid var(--border); border-left: 2px solid var(--gold-dim); background: rgba(196,144,144,0.03); }
 .dots { display: flex; gap: 0.4rem; padding: 0.8rem 1.2rem; }
 .dot-anim { width: 5px; height: 5px; border-radius: 50%; background: var(--gold-dim); animation: pulse 1.2s ease-in-out infinite; }
 .dot-anim:nth-child(2) { animation-delay: 0.2s; } .dot-anim:nth-child(3) { animation-delay: 0.4s; }
@@ -413,8 +514,8 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 /* WEATHER TRACKER */
 .weather-page { max-width: 720px; margin: 0 auto; padding: 2.5rem 2rem; width: 100%; }
 .page-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(2rem, 5vw, 3rem); font-weight: 300; color: var(--paper); margin-bottom: 0.4rem; }
-.page-sub { font-size: 0.9rem; color: var(--text-faint); font-style: italic; margin-bottom: 0.5rem; }
-.page-desc { font-size: 0.88rem; line-height: 1.7; color: var(--text-dim); margin-bottom: 2.5rem; max-width: 500px; }
+.page-sub { font-size: 1.25rem; color: var(--text-faint); font-style: italic; margin-bottom: 0.5rem; }
+.page-desc { font-size: 1rem; line-height: 1.7; color: var(--text-dim); margin-bottom: 2.5rem; max-width: 500px; }
 .weather-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; margin-bottom: 2rem; }
 @media (max-width: 480px) { .weather-grid { grid-template-columns: repeat(2, 1fr); } }
 .weather-option { border: 1px solid var(--border); padding: 1.1rem; cursor: pointer; text-align: center; transition: all 0.25s; background: rgba(255,255,255,0.015); }
@@ -424,7 +525,7 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .weather-label { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1rem; color: var(--paper); margin-bottom: 0.2rem; }
 .weather-desc { font-size: 0.7rem; color: var(--text-faint); line-height: 1.4; }
 .weather-note-label { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 0.6rem; }
-.weather-textarea { width: 100%; min-height: 120px; background: rgba(255,255,255,0.025); border: 1px solid var(--border); color: var(--paper); font-family: 'Crimson Pro', Georgia, serif; font-size: 1rem; line-height: 1.75; padding: 1rem 1.25rem; resize: vertical; outline: none; transition: border-color 0.3s; caret-color: var(--gold); margin-bottom: 1rem; }
+.weather-textarea { width: 100%; min-height: 120px; background: rgba(255,255,255,0.025); border: 1px solid var(--border); color: var(--paper); font-family: 'Crimson Pro', Georgia, serif; font-size: 1.25rem; line-height: 1.75; padding: 1rem 1.25rem; resize: vertical; outline: none; transition: border-color 0.3s; caret-color: var(--gold); margin-bottom: 1rem; }
 .weather-textarea:focus { border-color: var(--border-strong); }
 .weather-textarea::placeholder { color: var(--text-faint); font-style: italic; }
 .weather-history { margin-top: 2.5rem; }
@@ -440,16 +541,16 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .we-meta { flex: 1; }
 .we-date { font-family: 'DM Mono', monospace; font-size: 0.5rem; letter-spacing: 0.15em; color: var(--gold-dim); margin-bottom: 0.3rem; }
 .we-label { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1rem; color: var(--paper); margin-bottom: 0.25rem; }
-.we-note { font-size: 0.85rem; line-height: 1.6; color: var(--text-dim); font-style: italic; }
+.we-note { font-size: 1rem; line-height: 1.6; color: var(--text-dim); font-style: italic; }
 
 /* THE PAUSE */
 .pause-page { max-width: 640px; margin: 0 auto; padding: 2.5rem 2rem; width: 100%; }
 .pause-header { text-align: center; margin-bottom: 2.5rem; }
 .pause-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 300; color: var(--paper); margin-bottom: 0.4rem; }
-.pause-sub { font-size: 0.9rem; color: var(--text-faint); font-style: italic; }
+.pause-sub { font-size: 1rem; color: var(--text-faint); font-style: italic; }
 .pause-intro { border: 1px solid rgba(196,144,144,0.3); background: var(--pause-red-dim); padding: 1.4rem; margin-bottom: 2rem; }
 .pause-intro-label { font-family: 'DM Mono', monospace; font-size: 0.52rem; letter-spacing: 0.2em; text-transform: uppercase; color: #C49090; margin-bottom: 0.65rem; }
-.pause-intro p { font-size: 0.9rem; line-height: 1.75; color: var(--text-dim); }
+.pause-intro p { font-size: 1rem; line-height: 1.75; color: var(--text-dim); }
 .pause-section { margin-bottom: 2rem; }
 .pause-section-label { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; }
 .pause-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
@@ -469,7 +570,7 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .redirect-question { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.3rem; font-weight: 300; font-style: italic; color: var(--paper); line-height: 1.5; margin-bottom: 1rem; }
 .btn-new-redirect { background: transparent; border: none; color: var(--text-faint); font-family: 'DM Mono', monospace; font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: color 0.2s; padding: 0; }
 .btn-new-redirect:hover { color: var(--gold); }
-.pause-textarea { width: 100%; min-height: 130px; background: rgba(255,255,255,0.025); border: 1px solid var(--border); color: var(--paper); font-family: 'Crimson Pro', Georgia, serif; font-size: 1rem; line-height: 1.78; padding: 1rem 1.25rem; resize: vertical; outline: none; transition: border-color 0.3s; caret-color: var(--gold); }
+.pause-textarea { width: 100%; min-height: 130px; background: rgba(255,255,255,0.025); border: 1px solid var(--border); color: var(--paper); font-family: 'Crimson Pro', Georgia, serif; font-size: 1.25rem; line-height: 1.78; padding: 1rem 1.25rem; resize: vertical; outline: none; transition: border-color 0.3s; caret-color: var(--gold); }
 .pause-textarea:focus { border-color: var(--border-strong); }
 .pause-textarea::placeholder { color: var(--text-faint); font-style: italic; }
 
@@ -477,40 +578,69 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .urge-log { margin-top: 0.75rem; }
 .urge-entry { border: 1px solid var(--border); padding: 0.85rem 1rem; margin-bottom: 0.55rem; background: rgba(255,255,255,0.015); display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
 .urge-date { font-family: 'DM Mono', monospace; font-size: 0.5rem; letter-spacing: 0.12em; color: var(--gold-dim); flex-shrink: 0; }
-.urge-text { font-size: 0.85rem; line-height: 1.55; color: var(--text-dim); font-style: italic; flex: 1; }
+.urge-text { font-size: 1rem; line-height: 1.55; color: var(--text-dim); font-style: italic; flex: 1; }
 .urge-survived { font-family: 'DM Mono', monospace; font-size: 0.5rem; letter-spacing: 0.15em; color: var(--gold-dim); text-transform: uppercase; flex-shrink: 0; }
 
 /* DAILY RITUAL */
-.ritual-page { max-width: 680px; margin: 0 auto; padding: 2.5rem 2rem; width: 100%; }
+.ritual-page { max-width: 680px; margin: 0 auto; padding: 2.5rem 2rem; width: 100%; text-align: left; }
 .prompt-box { border: 1px solid var(--border); padding: 1.75rem; margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); }
 .prompt-eyebrow { font-family: 'DM Mono', monospace; font-size: 0.53rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 0.65rem; }
 .prompt-q { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.4rem; font-weight: 300; font-style: italic; color: var(--paper); line-height: 1.5; margin-bottom: 0.9rem; }
 .btn-prompt-swap { background: transparent; border: none; color: var(--text-faint); font-family: 'DM Mono', monospace; font-size: 0.53rem; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; transition: color 0.2s; padding: 0; }
 .btn-prompt-swap:hover { color: var(--gold); }
-.ritual-textarea { width: 100%; min-height: 190px; background: rgba(255,255,255,0.025); border: 1px solid var(--border); color: var(--paper); font-family: 'Crimson Pro', Georgia, serif; font-size: 1rem; line-height: 1.85; padding: 1.1rem 1.35rem; resize: vertical; outline: none; transition: border-color 0.3s; caret-color: var(--gold); margin-bottom: 1rem; }
+.ritual-textarea { width: 100%; min-height: 190px; background: rgba(255,255,255,0.025); border: 1px solid var(--border); color: var(--paper); font-family: 'Crimson Pro', Georgia, serif; font-size: 1.25rem; line-height: 1.85; padding: 1.1rem 1.35rem; resize: vertical; outline: none; transition: border-color 0.3s; caret-color: var(--gold); margin-bottom: 1rem; }
 .ritual-textarea:focus { border-color: var(--border-strong); }
 .ritual-textarea::placeholder { color: var(--text-faint); font-style: italic; }
-.entry-stack { margin-top: 2.5rem; }
+.entry-stack { margin-top: 2.5rem; overflow: visible; }
 .entry-header { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 1.1rem; display: flex; align-items: center; gap: 1rem; }
 .entry-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.entry-card { border: 1px solid var(--border); padding: 1.1rem; margin-bottom: 0.65rem; background: rgba(255,255,255,0.015); }
+.entry-card { border: 1px solid var(--border); padding: 1.1rem; margin-bottom: 0.65rem; background: rgba(255,255,255,0.015); overflow: visible; max-height: none; }
 .entry-date { font-family: 'DM Mono', monospace; font-size: 0.5rem; letter-spacing: 0.15em; color: var(--gold-dim); margin-bottom: 0.4rem; }
-.entry-prompt-text { font-size: 0.76rem; color: var(--text-faint); font-style: italic; margin-bottom: 0.4rem; }
-.entry-body { font-size: 0.9rem; line-height: 1.7; color: var(--text-dim); }
+.entry-prompt-text { font-size: 0.95rem; color: var(--text-faint); font-style: italic; margin-bottom: 0.4rem; white-space: pre-wrap; overflow-wrap: break-word; word-wrap: break-word; }
+.entry-body { font-family: 'Crimson Pro', Georgia, serif; font-size: 1.25rem; line-height: 1.7; color: var(--text-dim); display: block; max-height: none; min-height: 0; overflow: visible; text-overflow: clip; white-space: pre-wrap; overflow-wrap: break-word; word-wrap: break-word; -webkit-line-clamp: unset; line-clamp: unset; }
+.ws-entries { margin-top: 2rem; }
+.ws-entries-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: rgba(196,144,144,0.04); border: 1px solid var(--border); border-left: 2px solid var(--gold-dim); color: var(--paper); font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.9rem 1.15rem; cursor: pointer; transition: border-color 0.2s, background 0.2s; text-align: left; }
+.ws-entries-toggle:hover { border-color: var(--border-strong); background: rgba(196,144,144,0.08); }
+.ws-entries-toggle-label { color: var(--text-faint); transition: color 0.2s; }
+.ws-entries-toggle:hover .ws-entries-toggle-label { color: var(--paper); }
+.ws-entries-chevron { color: var(--gold-dim); font-size: 0.7rem; line-height: 1; transition: transform 0.25s ease; flex-shrink: 0; }
+.ws-entries.open .ws-entries-chevron { transform: rotate(180deg); }
+.ws-entries-panel { margin-top: 0.85rem; animation: fadeUp 0.35s ease; }
+.entry-writing-label { font-family: 'DM Mono', monospace; font-size: 0.48rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 0.35rem; }
+.entry-reflection-block { margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px solid var(--border); }
+.entry-reflection-label { font-family: 'DM Mono', monospace; font-size: 0.5rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 0.4rem; }
+.entry-reflection-body { font-size: 1rem; line-height: 1.75; color: var(--text-faint); font-style: italic; }
+
+/* MY JOURNAL */
+.journal-page { max-width: 760px; margin: 0 auto; padding: 2.5rem 2rem; width: 100%; text-align: left; animation: fadeUp 0.4s ease; }
+.journal-intro { font-size: 1.1rem; line-height: 1.75; color: var(--text-dim); margin-bottom: 2rem; max-width: 560px; }
+.journal-count { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem; }
+.journal-count::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.journal-empty { font-family: 'Crimson Pro', Georgia, serif; font-size: 1.15rem; line-height: 1.8; color: var(--text-faint); font-style: italic; border: 1px solid var(--border); border-left: 2px solid var(--gold-dim); padding: 2rem 1.5rem; background: rgba(196,144,144,0.03); }
+.journal-entry { border: 1px solid var(--border); border-left: 2px solid var(--gold-dim); padding: 1.25rem 1.35rem; margin-bottom: 0.85rem; background: rgba(255,255,255,0.015); overflow: visible; }
+.journal-entry-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.35rem 1rem; margin-bottom: 0.5rem; }
+.journal-entry-section { font-family: 'DM Mono', monospace; font-size: 0.52rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-dim); }
+.journal-entry-date { font-family: 'DM Mono', monospace; font-size: 0.5rem; letter-spacing: 0.15em; color: var(--text-faint); }
+.journal-entry-source { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.25rem; font-weight: 300; color: var(--paper); margin-bottom: 0.5rem; line-height: 1.35; }
+.journal-entry-prompt { font-family: 'Crimson Pro', Georgia, serif; font-size: 1.1rem; line-height: 1.65; color: var(--text-faint); font-style: italic; margin-bottom: 0.65rem; }
+.journal-entry-body { font-family: 'Crimson Pro', Georgia, serif; font-size: 1.15rem; line-height: 1.75; color: var(--text-dim); white-space: pre-wrap; overflow-wrap: break-word; }
+.journal-entry-reflection { margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--border); }
+.journal-entry-reflection .entry-reflection-label { margin-bottom: 0.45rem; }
+.journal-entry-reflection .entry-reflection-body { font-size: 1.1rem; }
 
 /* PHILOSOPHY */
 .philosophy { max-width: 700px; margin: 0 auto; padding: 2.5rem 2rem; animation: fadeUp 0.5s ease; }
 .phil-section { margin-bottom: 2.75rem; }
 .phil-label { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 0.85rem; }
 .phil-heading { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(1.5rem, 4vw, 2.4rem); font-weight: 300; color: var(--paper); margin-bottom: 0.9rem; line-height: 1.2; }
-.phil-body { font-size: 1rem; line-height: 1.9; color: var(--text-dim); }
+.phil-body { font-size: 1.25rem; line-height: 1.9; color: var(--text-dim); }
 .phil-body + .phil-body { margin-top: 0.9rem; }
 .phil-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-top: 1.25rem; }
 @media (max-width: 500px) { .phil-grid { grid-template-columns: 1fr; } }
 .phil-card { border: 1px solid var(--border); padding: 1.1rem; background: rgba(255,255,255,0.02); }
 .phil-card-icon { font-size: 0.95rem; color: var(--gold-dim); margin-bottom: 0.65rem; display: block; }
 .phil-card-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.05rem; color: var(--paper); margin-bottom: 0.35rem; }
-.phil-card-text { font-size: 0.78rem; line-height: 1.65; color: var(--text-faint); }
+.phil-card-text { font-size: 0.95rem; line-height: 1.65; color: var(--text-faint); }
 
 /* TOAST & MARK */
 .toast { position: fixed; bottom: 2rem; right: 2rem; background: rgba(28,26,28,0.97); border: 1px solid var(--gold-dim); color: var(--paper); font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.7rem 1.15rem; z-index: 200; animation: fadeUp 0.3s ease; }
@@ -590,6 +720,7 @@ export default function Override() {
   const [dailyText, setDailyText] = useState("");
   const [dailyPromptIdx, setDailyPromptIdx] = useState(0);
   const [showToast, setShowToast] = useState(false);
+  const [toolEntriesOpen, setToolEntriesOpen] = useState(false);
 
   // Inject styles
   useEffect(() => {
@@ -625,6 +756,10 @@ export default function Override() {
     setPauseRedirectIdx(Math.floor(Math.random() * PAUSE_REDIRECTS.length));
   }, []);
 
+  useEffect(() => {
+    setToolEntriesOpen(false);
+  }, [activeTool?.id, activeChapter?.id]);
+
   // Timer
   useEffect(() => {
     if (timerActive) {
@@ -637,7 +772,7 @@ export default function Override() {
 
   const navReset = (nav) => {
     setActiveNav(nav); setActiveChapter(null); setActiveTool(null);
-    setAiResponse(""); setUserText("");
+    setAiResponse(""); setUserText(""); setToolEntriesOpen(false);
   };
 
   // Persist helpers
@@ -697,6 +832,11 @@ export default function Override() {
   const totalTools = CHAPTERS.reduce((a, c) => a + c.tools.length, 0);
   const totalTasks = CHAPTERS.reduce((a, c) => a + c.weeklyTasks.length, 0);
   const progress = Math.round(((completedTools.size + completedTasks.size) / (totalTools + totalTasks)) * 100);
+
+  const allJournalEntries = useMemo(
+    () => buildAllJournalEntries({ toolEntries, journalEntries, taskNotes, urgeLog, weatherLog }),
+    [toolEntries, journalEntries, taskNotes, urgeLog, weatherLog],
+  );
 
   useEffect(() => {
     if (authLoading) return;
@@ -829,6 +969,37 @@ export default function Override() {
             {isDone && <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "0.56rem", letterSpacing: "0.15em", color: "var(--gold)", textTransform: "uppercase" }}>✦ Complete</span>}
           </div>
 
+          {entries.length > 0 && (
+            <div className={`ws-entries${toolEntriesOpen ? " open" : ""}`}>
+              <button
+                type="button"
+                className="ws-entries-toggle"
+                onClick={() => setToolEntriesOpen((open) => !open)}
+                aria-expanded={toolEntriesOpen}
+              >
+                <span className="ws-entries-toggle-label">Your previous entries ({entries.length})</span>
+                <span className="ws-entries-chevron" aria-hidden="true">{toolEntriesOpen ? "▴" : "▾"}</span>
+              </button>
+              {toolEntriesOpen && (
+                <div className="ws-entries-panel">
+                  {entries.map((e, i) => (
+                    <div key={`${e.date}-${e.time}-${i}`} className="entry-card">
+                      <div className="entry-date">{e.date}{e.time ? ` · ${e.time}` : ""}</div>
+                      <div className="entry-writing-label">Your writing</div>
+                      <div className="entry-body">{e.text}</div>
+                      {e.reflection && (
+                        <div className="entry-reflection-block">
+                          <div className="entry-reflection-label">AI reflection</div>
+                          <div className="entry-reflection-body">{e.reflection}</div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {(loading || aiResponse) && (
             <div className="ai-block">
               <div className="ai-header"><span className="ai-label">Your reflection</span><div className="ai-line" /></div>
@@ -840,28 +1011,6 @@ export default function Override() {
                     <button className="btn-ghost" style={{ marginTop: "0.75rem" }} onClick={handleSaveEntry}>Save this entry ✦</button>
                   </>
                 )}
-            </div>
-          )}
-
-          {/* Saved entries for this tool */}
-          {entries.length > 0 && (
-            <div className="entry-stack" style={{ marginTop: "2.5rem" }}>
-              <div className="entry-header">
-                Your entries for this tool
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "0.5rem", color: "var(--text-faint)", marginLeft: "0.5rem" }}>({entries.length})</span>
-              </div>
-              {entries.map((e, i) => (
-                <div key={i} className="entry-card">
-                  <div className="entry-date">{e.date} · {e.time}</div>
-                  <div className="entry-body">{e.text}</div>
-                  {e.reflection && (
-                    <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)" }}>
-                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "0.5rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--gold-dim)", marginBottom: "0.4rem" }}>Reflection</div>
-                      <div style={{ fontSize: "0.88rem", lineHeight: 1.7, color: "var(--text-faint)", fontStyle: "italic" }}>{e.reflection}</div>
-                    </div>
-                  )}
-                </div>
-              ))}
             </div>
           )}
         </div>
@@ -1173,7 +1322,7 @@ export default function Override() {
       return (
         <div className="ritual-page">
           <h2 className="page-title" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(2rem, 5vw, 3rem)", fontWeight: 300, color: "var(--paper)", marginBottom: "0.4rem" }}>Daily Ritual</h2>
-          <p className="page-sub" style={{ fontSize: "0.9rem", color: "var(--text-faint)", fontStyle: "italic", marginBottom: "2rem" }}>A few honest minutes with yourself, every day.</p>
+          <p className="page-sub" style={{ fontSize: "1.25rem", color: "var(--text-faint)", fontStyle: "italic", marginBottom: "2rem" }}>A few honest minutes with yourself, every day.</p>
           <div className="prompt-box">
             <div className="prompt-eyebrow">Today's prompt</div>
             <div className="prompt-q">"{DAILY_PROMPTS[dailyPromptIdx]}"</div>
@@ -1204,6 +1353,52 @@ export default function Override() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      );
+    }
+
+    /* My Journal */
+    if (activeNav === "journal") {
+      return (
+        <div className="journal-page">
+          <h2 className="page-title">My Journal</h2>
+          <p className="page-sub">Everything you&apos;ve written, in one place.</p>
+          <p className="journal-intro">
+            Reflection tools, daily ritual, weekly task notes, emotional weather, and pause entries — sorted newest first.
+          </p>
+          {allJournalEntries.length === 0 ? (
+            <div className="journal-empty">
+              No saved entries yet. Write in a reflection tool, save a daily ritual entry, add task notes, log your weather, or hold the line in The Pause — they&apos;ll appear here.
+            </div>
+          ) : (
+            <>
+              <div className="journal-count">{allJournalEntries.length} {allJournalEntries.length === 1 ? "entry" : "entries"}</div>
+              {allJournalEntries.map((entry) => (
+                <article key={entry.id} className="journal-entry">
+                  <div className="journal-entry-top">
+                    <span className="journal-entry-section">{entry.section}</span>
+                    <span className="journal-entry-date">
+                      {entry.date}{entry.time ? ` · ${entry.time}` : ""}
+                    </span>
+                  </div>
+                  <h3 className="journal-entry-source">{entry.source}</h3>
+                  {entry.meta && entry.section === "Daily Ritual" && (
+                    <p className="journal-entry-prompt">&ldquo;{entry.meta}&rdquo;</p>
+                  )}
+                  {entry.meta && entry.section === "Emotional Weather" && (
+                    <p className="journal-entry-prompt">{entry.meta}</p>
+                  )}
+                  <div className="journal-entry-body">{entry.text}</div>
+                  {entry.reflection && (
+                    <div className="journal-entry-reflection">
+                      <div className="entry-reflection-label">AI reflection</div>
+                      <div className="entry-reflection-body">{entry.reflection}</div>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </>
           )}
         </div>
       );
@@ -1261,6 +1456,7 @@ export default function Override() {
               ["weather", "Weather", false],
               ["pause", "The Pause", true],
               ["ritual", "Daily Ritual", false],
+              ["journal", "My Journal", false],
               ["philosophy", "Philosophy", false],
             ].map(([key, label, isPause]) => (
               <button key={key} className={`nav-tab${isPause ? " pause-tab" : ""}${activeNav === key ? " active" : ""}`} onClick={() => navReset(key)}>
@@ -1285,7 +1481,7 @@ export default function Override() {
         </div>
       </nav>
       <div className="progress-bar-container"><div className="progress-bar-fill" style={{ width: `${progress}%` }} /></div>
-      <main style={{ flex: 1 }}>{renderContent()}</main>
+      <main style={{ flex: "1 0 auto", width: "100%" }}>{renderContent()}</main>
       {showToast && <div className="toast">{showToast}</div>}
       <div className="override-mark">OVERRIDE · Identity Reconstruction Program</div>
     </div>
