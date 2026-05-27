@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useStripeCheckout } from "./hooks/useStripeCheckout";
 
 const STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&display=swap');
@@ -113,8 +114,9 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .price-card-cta { padding: 1.25rem 1.75rem 1.75rem; }
 .btn-price { width: 100%; background: transparent; border: 1px solid var(--gold-dim); color: var(--paper); font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1rem; letter-spacing: 0.1em; padding: 0.85rem 1.5rem; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; }
 .btn-price::before { content: ''; position: absolute; inset: 0; background: rgba(196,144,144,0.08); transform: translateX(-100%); transition: 0.35s ease; }
-.btn-price:hover { border-color: var(--gold); }
-.btn-price:hover::before { transform: translateX(0); }
+.btn-price:hover:not(:disabled) { border-color: var(--gold); }
+.btn-price:hover:not(:disabled)::before { transform: translateX(0); }
+.btn-price:disabled { opacity: 0.5; cursor: wait; }
 .btn-price.hl { border-color: var(--gold); background: rgba(196,144,144,0.06); }
 .btn-price.hl::before { background: rgba(196,144,144,0.12); }
 .cta-note { font-family: 'DM Mono', monospace; font-size: 0.46rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint); text-align: center; margin-top: 0.55rem; }
@@ -206,6 +208,7 @@ function Cell({ val }) {
 
 export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState(null);
+  const { checkout: startCheckout, loading: checkoutLoading, error: checkoutError } = useStripeCheckout();
 
   useEffect(() => {
     const style = document.createElement("style");
@@ -343,7 +346,14 @@ export default function PricingPage() {
               ))}
             </div>
             <div className="price-card-cta">
-              <button className="btn-price">Get Override →</button>
+              <button type="button" className="btn-price" onClick={startCheckout} disabled={checkoutLoading}>
+                {checkoutLoading ? "Opening checkout…" : "Get Override →"}
+              </button>
+              {checkoutError && (
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: "0.52rem", color: "#e8a0a0", marginTop: "0.65rem", letterSpacing: "0.08em" }}>
+                  {checkoutError}
+                </p>
+              )}
               <div className="cta-note">One-time · Lifetime access · No subscription</div>
             </div>
           </div>
@@ -410,7 +420,9 @@ export default function PricingPage() {
           Your notes and entries are saved permanently — come back whenever you're ready.
         </p>
         <div className="bottom-btns">
-          <button className="btn-bottom primary">Get Override — $47 →</button>
+          <button type="button" className="btn-bottom primary" onClick={startCheckout} disabled={checkoutLoading}>
+            {checkoutLoading ? "Opening checkout…" : "Get Override — $47 →"}
+          </button>
         </div>
       </div>
 

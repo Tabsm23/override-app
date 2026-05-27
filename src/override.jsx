@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { useStripeCheckout } from "./hooks/useStripeCheckout";
 import { supabase } from "./supabase";
 
 /* ══════════════════════════════════════════════
@@ -367,8 +368,9 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .nav-tab.pause-tab:hover { color: #C49090; }
 .nav-tab.pause-tab.active { color: #C49090; border-bottom-color: #C49090; }
 .nav-right { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end; }
-.nav-pricing-link { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-dim); border: 1px solid var(--border); padding: 0.4rem 0.75rem; text-decoration: none; white-space: nowrap; flex-shrink: 0; transition: color 0.2s, border-color 0.2s; }
-.nav-pricing-link:hover { color: var(--gold); border-color: var(--border-strong); }
+.nav-pricing-link { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-dim); border: 1px solid var(--border); padding: 0.4rem 0.75rem; text-decoration: none; white-space: nowrap; flex-shrink: 0; transition: color 0.2s, border-color 0.2s; background: transparent; cursor: pointer; }
+.nav-pricing-link:hover:not(:disabled) { color: var(--gold); border-color: var(--border-strong); }
+.nav-pricing-link:disabled { opacity: 0.55; cursor: default; }
 .nav-logout {
   background: transparent;
   border: none;
@@ -681,6 +683,7 @@ function PreviewLock() {
 export default function Override() {
   const location = useLocation();
   const { isLoggedIn, hasPaid, loading: authLoading } = useAuth();
+  const { checkout: startCheckout, loading: checkoutLoading } = useStripeCheckout();
   const isProgramRoute = location.pathname === "/program";
   const isPreviewLocked = authLoading || !hasPaid;
 
@@ -1464,7 +1467,14 @@ export default function Override() {
               </button>
             ))}
           </div>
-          <Link to="/pricing" className="nav-pricing-link">Get Override — $47</Link>
+          <button
+            type="button"
+            className="nav-pricing-link"
+            onClick={startCheckout}
+            disabled={checkoutLoading || hasPaid}
+          >
+            {hasPaid ? "Override unlocked ✦" : checkoutLoading ? "Opening checkout…" : "Get Override — $47"}
+          </button>
           {isLoggedIn && (
             <button
               type="button"

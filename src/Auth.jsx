@@ -107,6 +107,21 @@ const STYLES = `
 .auth-toggle-btn:hover:not(.active) { color: var(--text-dim); }
 
 .auth-form { display: flex; flex-direction: column; gap: 1.25rem; }
+.auth-row { display: flex; justify-content: flex-end; margin-top: -0.25rem; }
+.auth-link {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-link:hover { color: var(--paper); }
 
 .auth-field { display: flex; flex-direction: column; gap: 0.45rem; }
 .auth-label {
@@ -182,6 +197,9 @@ export default function Auth() {
   const [loginPassword, setLoginPassword] = useState('')
   const [loginError, setLoginError] = useState('')
 
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetResult, setResetResult] = useState('')
+
   const [signupEmail, setSignupEmail] = useState('')
   const [signupPassword, setSignupPassword] = useState('')
   const [signupResult, setSignupResult] = useState('')
@@ -219,6 +237,36 @@ export default function Auth() {
     }
   }
 
+  function getResetRedirectBase() {
+    return (
+      import.meta.env.VITE_CHECKOUT_BASE_URL ||
+      import.meta.env.CHECKOUT_BASE_URL ||
+      import.meta.env.VITE_AUTH_REDIRECT_URL ||
+      window.location.origin
+    ).replace(/\/$/, '')
+  }
+
+  async function handleForgotPassword(e) {
+    if (e?.preventDefault) e.preventDefault()
+    setResetResult('')
+    const email = resetEmail.trim()
+    if (!email) return
+
+    try {
+      const redirectTo = `${getResetRedirectBase()}/reset-password`
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo,
+      })
+      if (error) {
+        setResetResult(`Error: ${error.message}`)
+        return
+      }
+      setResetResult('Reset link sent. Check your email.')
+    } catch (err) {
+      setResetResult(`Error: ${err?.message ?? 'Could not send reset link.'}`)
+    }
+  }
+
   async function handleSignUp(e) {
     e.preventDefault()
     setSignupResult('')
@@ -245,34 +293,41 @@ export default function Auth() {
   }
 
   const isSignUp = tab === 'signup'
+  const isForgot = tab === 'forgot'
 
   return (
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-wordmark">O<span>V</span>ERRIDE</div>
-        <h1 className="auth-heading">{isSignUp ? 'Create your account' : 'Welcome back'}</h1>
+        <h1 className="auth-heading">
+          {isSignUp ? 'Create your account' : isForgot ? 'Reset your password' : 'Welcome back'}
+        </h1>
         <p className="auth-sub">
-          {isSignUp ? 'Begin your identity reconstruction' : 'Continue your program'}
+          {isSignUp
+            ? 'Begin your identity reconstruction'
+            : isForgot
+              ? 'We’ll email you a reset link'
+              : 'Continue your program'}
         </p>
 
         <div className="auth-toggle">
           <button
             type="button"
-            className={`auth-toggle-btn${!isSignUp ? ' active' : ''}`}
-            onClick={() => setTab('login')}
+            className={`auth-toggle-btn${!isSignUp && !isForgot ? ' active' : ''}`}
+            onClick={() => { setTab('login'); setResetResult('') }}
           >
             Log in
           </button>
           <button
             type="button"
             className={`auth-toggle-btn${isSignUp ? ' active' : ''}`}
-            onClick={() => setTab('signup')}
+            onClick={() => { setTab('signup'); setResetResult('') }}
           >
             Sign up
           </button>
         </div>
 
-        {!isSignUp ? (
+        {!isSignUp && !isForgot ? (
           <form className="auth-form" onSubmit={handleLogin}>
             <div className="auth-field">
               <label className="auth-label" htmlFor="login-email">Email</label>
@@ -306,6 +361,51 @@ export default function Auth() {
             {loginError && <p className="auth-error">{loginError}</p>}
 
             <button type="submit" className="auth-submit">Log in</button>
+            <div className="auth-row">
+              <button
+                type="button"
+                className="auth-link"
+                onClick={() => {
+                  setResetEmail(loginEmail.trim())
+                  setResetResult('')
+                  setTab('forgot')
+                }}
+              >
+                Forgot password?
+              </button>
+            </div>
+          </form>
+        ) : isForgot ? (
+          <form className="auth-form" onSubmit={handleForgotPassword}>
+            <div className="auth-field">
+              <label className="auth-label" htmlFor="reset-email">Email</label>
+              <input
+                id="reset-email"
+                className="auth-input"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            {resetResult && (
+              <p className={resetResult.startsWith('Error:') ? 'auth-error' : 'auth-message'}>
+                {resetResult}
+              </p>
+            )}
+
+            <button type="submit" className="auth-submit">Send reset link</button>
+            <div className="auth-row" style={{ justifyContent: 'space-between' }}>
+              <button type="button" className="auth-link" onClick={() => { setTab('login'); setResetResult('') }}>
+                ← Back to login
+              </button>
+              <a className="auth-link" href="/reset-password">
+                I already have a link →
+              </a>
+            </div>
           </form>
         ) : (
           <form className="auth-form" onSubmit={handleSignUp}>

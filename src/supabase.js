@@ -8,7 +8,7 @@ const supabaseAnonKey =
   'sb_publishable_PlZlJUAHx-pOLMXYvWRR6Q_BZG5XSQh'
 
 export const authRedirectUrl =
-  import.meta.env.VITE_AUTH_REDIRECT_URL ?? 'http://localhost:5173'
+  import.meta.env.VITE_AUTH_REDIRECT_URL ?? 'http://localhost:5178'
 
 /** Passed to signUp so confirmation emails return users to the app. */
 export const signUpOptions = {
