@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase, signUpOptions } from './supabase'
 
 const STYLES = `
@@ -184,10 +185,17 @@ const STYLES = `
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
 }
-.auth-submit:hover {
+.auth-submit:hover:not(:disabled) {
   border-color: var(--gold);
   background: rgba(196,144,144,0.08);
 }
+.auth-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+.auth-checkboxes { display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.25rem; }
+.auth-checkbox-row { display: flex; align-items: flex-start; gap: 0.65rem; text-align: left; cursor: pointer; }
+.auth-checkbox-row input { margin-top: 0.15rem; width: 13px; height: 13px; flex-shrink: 0; accent-color: var(--gold); cursor: pointer; }
+.auth-checkbox-text { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.04em; line-height: 1.65; color: var(--text-faint); }
+.auth-checkbox-text a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; }
+.auth-checkbox-text a:hover { color: var(--paper); }
 `
 
 export default function Auth() {
@@ -203,6 +211,11 @@ export default function Auth() {
   const [signupEmail, setSignupEmail] = useState('')
   const [signupPassword, setSignupPassword] = useState('')
   const [signupError, setSignupError] = useState('')
+  const [agreedTerms, setAgreedTerms] = useState(false)
+  const [agreedDisclaimer, setAgreedDisclaimer] = useState(false)
+  const [agreedAge, setAgreedAge] = useState(false)
+
+  const canCreateAccount = agreedTerms && agreedDisclaimer && agreedAge
 
   useEffect(() => {
     const style = document.createElement('style')
@@ -437,7 +450,40 @@ export default function Auth() {
 
             {signupError && <p className="auth-error">{signupError}</p>}
 
-            <button type="submit" className="auth-submit">Create account</button>
+            <div className="auth-checkboxes">
+              <label className="auth-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={agreedTerms}
+                  onChange={(e) => setAgreedTerms(e.target.checked)}
+                />
+                <span className="auth-checkbox-text">
+                  I agree to the <Link to="/terms">Terms of Service</Link>
+                </span>
+              </label>
+              <label className="auth-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={agreedDisclaimer}
+                  onChange={(e) => setAgreedDisclaimer(e.target.checked)}
+                />
+                <span className="auth-checkbox-text">
+                  I understand Override is a self-directed program, not a mental health service or crisis support
+                </span>
+              </label>
+              <label className="auth-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={agreedAge}
+                  onChange={(e) => setAgreedAge(e.target.checked)}
+                />
+                <span className="auth-checkbox-text">
+                  I confirm I am 18 years of age or older
+                </span>
+              </label>
+            </div>
+
+            <button type="submit" className="auth-submit" disabled={!canCreateAccount}>Create account</button>
           </form>
         )}
       </div>

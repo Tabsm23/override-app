@@ -650,6 +650,10 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 
 /* TOAST & MARK */
 .toast { position: fixed; bottom: 2rem; right: 2rem; background: rgba(28,26,28,0.97); border: 1px solid var(--gold-dim); color: var(--paper); font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.7rem 1.15rem; z-index: 200; animation: fadeUp 0.3s ease; }
+.welcome-legal-links { position: fixed; bottom: 2.85rem; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 0.6rem; font-family: 'DM Mono', monospace; font-size: 0.48rem; letter-spacing: 0.22em; text-transform: uppercase; }
+.welcome-legal-links a { color: rgba(196,144,144,0.28); text-decoration: none; transition: color 0.2s; }
+.welcome-legal-links a:hover { color: rgba(196,144,144,0.5); }
+.welcome-legal-links span { color: rgba(196,144,144,0.16); pointer-events: none; }
 .override-mark { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); font-family: 'DM Mono', monospace; font-size: 0.48rem; letter-spacing: 0.3em; color: rgba(196,144,144,0.16); text-transform: uppercase; pointer-events: none; z-index: 10; }
 
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
@@ -901,8 +905,13 @@ export default function Override() {
           </button>
         </div>
         <p className="welcome-crisis-line">
-          Override is a self-directed program, not a crisis service. If you need immediate support, visit <a href="https://findahelpline.com" target="_blank">findahelpline.com</a>
+          Override is a self-directed program, not a crisis service. If you need immediate support, visit <a href="https://findahelpline.com" target="_blank" rel="noopener noreferrer">findahelpline.com</a>
         </p>
+        <nav className="welcome-legal-links" aria-label="Legal">
+          <Link to="/terms">Terms</Link>
+          <span aria-hidden="true">·</span>
+          <Link to="/privacy">Privacy</Link>
+        </nav>
         <div className="override-mark">OVERRIDE · Identity Reconstruction Program</div>
       </div>
     );
