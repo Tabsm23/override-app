@@ -350,6 +350,8 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .btn-begin:hover { border-color: var(--gold); } .btn-begin:hover::before { transform: translateX(0); }
 .welcome-preview-link { display: block; margin-top: 1.25rem; background: none; border: none; font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); cursor: pointer; opacity: 0; animation: fadeUp 1s ease 1.4s forwards; transition: color 0.2s; }
 .welcome-preview-link:hover { color: var(--gold-dim); }
+.welcome-crisis-line { position: absolute; bottom: 3.25rem; left: 0; right: 0; z-index: 2; padding: 0 2rem; font-family: 'DM Mono', monospace; font-size: 0.62rem; line-height: 1.65; color: rgba(255,255,255,0.75); text-align: center; max-width: 36rem; margin: 0 auto; }
+.welcome-crisis-line a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .preview-lock { font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-dim); border: 1px solid var(--border); padding: 1.25rem 1.5rem; text-align: center; background: rgba(196,144,144,0.04); line-height: 1.6; }
 .tool-card.locked { cursor: default; }
 .tool-card.locked:hover { border-color: var(--border); }
@@ -631,7 +633,7 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .journal-entry-reflection .entry-reflection-body { font-size: 1.1rem; }
 
 /* PHILOSOPHY */
-.philosophy { max-width: 700px; margin: 0 auto; padding: 2.5rem 2rem; animation: fadeUp 0.5s ease; }
+.philosophy { max-width: 700px; margin: 0 auto; padding: 2.5rem 2rem 5rem; animation: fadeUp 0.5s ease; }
 .phil-section { margin-bottom: 2.75rem; }
 .phil-label { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 0.85rem; }
 .phil-heading { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(1.5rem, 4vw, 2.4rem); font-weight: 300; color: var(--paper); margin-bottom: 0.9rem; line-height: 1.2; }
@@ -643,6 +645,8 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .phil-card-icon { font-size: 0.95rem; color: var(--gold-dim); margin-bottom: 0.65rem; display: block; }
 .phil-card-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.05rem; color: var(--paper); margin-bottom: 0.35rem; }
 .phil-card-text { font-size: 0.95rem; line-height: 1.65; color: var(--text-faint); }
+.phil-disclaimer { margin-top: 3rem; font-family: 'Crimson Pro', Georgia, serif; font-size: 0.95rem; font-style: italic; line-height: 1.85; color: rgba(196,144,144,0.5); text-align: center; }
+.phil-disclaimer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 
 /* TOAST & MARK */
 .toast { position: fixed; bottom: 2rem; right: 2rem; background: rgba(28,26,28,0.97); border: 1px solid var(--gold-dim); color: var(--paper); font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.7rem 1.15rem; z-index: 200; animation: fadeUp 0.3s ease; }
@@ -896,6 +900,9 @@ export default function Override() {
             Or explore a preview →
           </button>
         </div>
+        <p className="welcome-crisis-line">
+          Override is a self-directed program, not a crisis service. If you need immediate support, visit <a href="https://findahelpline.com" target="_blank">findahelpline.com</a>
+        </p>
         <div className="override-mark">OVERRIDE · Identity Reconstruction Program</div>
       </div>
     );
@@ -1442,6 +1449,9 @@ export default function Override() {
             <h2 className="phil-heading">A self-directed program, not a substitute for professional support.</h2>
             <p className="phil-body">The AI reflections in OVERRIDE are a mirror — thoughtful, specific, and deeply responsive to what you've written. They work best alongside human support — a counsellor, a trusted community, or people who have walked a similar path. OVERRIDE is for the hard, hopeful work of rebuilding — not for crisis. If you're in crisis, please reach out to a qualified professional.</p>
           </div>
+          <p className="phil-disclaimer">
+            Override is a self-directed identity reconstruction program, not a mental health service or crisis support. The AI reflections within Override are thinking prompts, not clinical advice. If you are struggling or need immediate support, please reach out to a qualified professional or visit <a href="https://findahelpline.com" target="_blank">findahelpline.com</a> — a free directory of crisis helplines in over 30 countries.
+          </p>
         </div>
       );
     }

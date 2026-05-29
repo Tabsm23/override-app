@@ -202,7 +202,7 @@ export default function Auth() {
 
   const [signupEmail, setSignupEmail] = useState('')
   const [signupPassword, setSignupPassword] = useState('')
-  const [signupResult, setSignupResult] = useState('')
+  const [signupError, setSignupError] = useState('')
 
   useEffect(() => {
     const style = document.createElement('style')
@@ -269,27 +269,24 @@ export default function Auth() {
 
   async function handleSignUp(e) {
     e.preventDefault()
-    setSignupResult('')
+    setSignupError('')
 
-    const { data, error } = await supabase.auth.signUp({
-      email: signupEmail.trim(),
-      password: signupPassword,
-      options: signUpOptions,
-    })
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: signupEmail.trim(),
+        password: signupPassword,
+        options: signUpOptions,
+      })
 
-    if (error) {
-      setSignupResult(`Error: ${error.message}`)
-      return
+      if (error) {
+        setSignupError(`Error: ${error.message}`)
+        return
+      }
+
+      window.location.href = '/program'
+    } catch (err) {
+      setSignupError(err?.message ?? 'Sign up failed. Please try again.')
     }
-
-    const lines = [
-      'Sign up successful.',
-      data.session ? 'Session: yes (you can go to the app).' : 'Session: no (confirm your email first).',
-      data.user?.email ? `Email: ${data.user.email}` : '',
-      data.user?.id ? `User id: ${data.user.id}` : '',
-    ].filter(Boolean)
-
-    setSignupResult(lines.join('\n'))
   }
 
   const isSignUp = tab === 'signup'
@@ -438,11 +435,7 @@ export default function Auth() {
               />
             </div>
 
-            {signupResult && (
-              <p className={signupResult.startsWith('Error:') ? 'auth-error' : 'auth-message'}>
-                {signupResult}
-              </p>
-            )}
+            {signupError && <p className="auth-error">{signupError}</p>}
 
             <button type="submit" className="auth-submit">Create account</button>
           </form>
