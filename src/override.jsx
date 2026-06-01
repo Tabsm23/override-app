@@ -332,7 +332,8 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .welcome { min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; overflow-x: hidden; overflow-y: auto; padding: 3rem 2rem 1.5rem; background: #1E1C1E; }
 .welcome::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(160,110,110,0.14) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(100,70,70,0.18) 0%, transparent 60%); pointer-events: none; }
 .welcome::after { content: ''; position: absolute; inset: 0; background-image: var(--grain); opacity: 0.4; pointer-events: none; }
-.welcome-inner { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; max-width: 700px; width: 100%; text-align: center; animation: fadeUp 1.2s ease forwards; position: relative; z-index: 1; padding: 0.5rem 0 0; margin-bottom: 0; }
+.welcome-inner { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; max-width: 700px; width: 100%; text-align: center; animation: fadeUp 1.2s ease forwards; position: relative; z-index: 1; padding: 0.5rem 0 0; margin-bottom: 0; }
+.welcome-cta { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin-top: 0.5rem; }
 .override-wordmark { display: block; width: 100%; text-align: center; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 400; letter-spacing: 0.15em; color: #F0EBE8; line-height: 1; margin-bottom: 0.15em; text-shadow: 0 0 40px rgba(196,168,122,0.2); padding-right: 0.15em; box-sizing: border-box; }
 .override-wordmark span { color: var(--gold); }
 .welcome-eyebrow { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.25em; color: var(--gold); text-transform: uppercase; margin-bottom: 3rem; }
@@ -345,10 +346,10 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .feature-pill-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
 .feature-pill-text { font-size: 1.1rem; line-height: 1.5; color: var(--text-faint); }
 .feature-pill-label { font-family: 'DM Mono', monospace; font-size: 0.52rem; letter-spacing: 0.18em; color: var(--gold); text-transform: uppercase; display: block; margin-bottom: 0.25rem; }
-.btn-begin { display: inline-flex; align-items: center; gap: 0.75rem; background: transparent; border: 1px solid var(--gold-dim); color: var(--paper); font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1rem; letter-spacing: 0.15em; padding: 0.9rem 2.5rem; cursor: pointer; transition: all 0.3s ease; margin-top: 0.5rem; opacity: 0; animation: fadeUp 1s ease 1.3s forwards; position: relative; overflow: hidden; text-decoration: none; }
+.btn-begin { display: inline-flex; align-items: center; justify-content: center; gap: 0.75rem; background: transparent; border: 1px solid var(--gold-dim); color: var(--paper); font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1rem; letter-spacing: 0.15em; padding: 0.9rem 2.5rem; cursor: pointer; transition: all 0.3s ease; margin: 0; opacity: 0; animation: fadeUp 1s ease 1.3s forwards; position: relative; overflow: hidden; text-decoration: none; }
 .btn-begin::before { content: ''; position: absolute; inset: 0; background: rgba(196,144,144,0.08); transform: translateX(-100%); transition: transform 0.4s ease; }
 .btn-begin:hover { border-color: var(--gold); } .btn-begin:hover::before { transform: translateX(0); }
-.welcome-preview-link { display: block; margin-top: 1.25rem; background: none; border: none; font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); cursor: pointer; opacity: 0; animation: fadeUp 1s ease 1.4s forwards; transition: color 0.2s; }
+.welcome-preview-link { display: block; margin: 1.25rem 0 0; background: none; border: none; font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); cursor: pointer; opacity: 0; animation: fadeUp 1s ease 1.4s forwards; transition: color 0.2s; text-align: center; }
 .welcome-preview-link:hover { color: var(--gold-dim); }
 .welcome-footer { position: relative; flex-shrink: 0; width: 100%; max-width: 700px; margin: 0 auto; padding: 1rem 1rem 0.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.65rem; z-index: 2; }
 .welcome-mark { font-family: 'DM Mono', monospace; font-size: 0.48rem; letter-spacing: 0.3em; color: rgba(196,144,144,0.16); text-transform: uppercase; }
@@ -897,12 +898,14 @@ export default function Override() {
               </div>
             ))}
           </div>
-          <Link to="/auth" className="btn-begin">
-            Begin your program <span style={{ color: "var(--gold)" }}>→</span>
-          </Link>
-          <button type="button" className="welcome-preview-link" onClick={() => setScreen("app")}>
-            Or explore a preview →
-          </button>
+          <div className="welcome-cta">
+            <Link to="/auth" className="btn-begin">
+              Begin your program <span style={{ color: "var(--gold)" }}>→</span>
+            </Link>
+            <button type="button" className="welcome-preview-link" onClick={() => setScreen("app")}>
+              Or explore a preview →
+            </button>
+          </div>
         </div>
         <footer className="welcome-footer">
           <nav className="welcome-legal-links" aria-label="Legal">
