@@ -329,10 +329,10 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
 
 /* WELCOME */
-.welcome { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; padding: 3rem 2rem; background: #1E1C1E; }
+.welcome { min-height: 100vh; display: flex; flex-direction: column; align-items: center; position: relative; overflow-x: hidden; overflow-y: auto; padding: 3rem 2rem 1.5rem; background: #1E1C1E; }
 .welcome::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 20% 30%, rgba(160,110,110,0.14) 0%, transparent 60%), radial-gradient(ellipse 60% 80% at 80% 70%, rgba(100,70,70,0.18) 0%, transparent 60%); pointer-events: none; }
 .welcome::after { content: ''; position: absolute; inset: 0; background-image: var(--grain); opacity: 0.4; pointer-events: none; }
-.welcome-inner { max-width: 700px; width: 100%; text-align: center; animation: fadeUp 1.2s ease forwards; position: relative; z-index: 1; }
+.welcome-inner { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; max-width: 700px; width: 100%; text-align: center; animation: fadeUp 1.2s ease forwards; position: relative; z-index: 1; padding: 0.5rem 0 0; margin-bottom: 0; }
 .override-wordmark { display: block; width: 100%; text-align: center; font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 400; letter-spacing: 0.15em; color: #F0EBE8; line-height: 1; margin-bottom: 0.15em; text-shadow: 0 0 40px rgba(196,168,122,0.2); padding-right: 0.15em; box-sizing: border-box; }
 .override-wordmark span { color: var(--gold); }
 .welcome-eyebrow { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.25em; color: var(--gold); text-transform: uppercase; margin-bottom: 3rem; }
@@ -350,8 +350,8 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .btn-begin:hover { border-color: var(--gold); } .btn-begin:hover::before { transform: translateX(0); }
 .welcome-preview-link { display: block; margin-top: 1.25rem; background: none; border: none; font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); cursor: pointer; opacity: 0; animation: fadeUp 1s ease 1.4s forwards; transition: color 0.2s; }
 .welcome-preview-link:hover { color: var(--gold-dim); }
-.welcome-crisis-line { position: absolute; bottom: 3.25rem; left: 0; right: 0; z-index: 2; padding: 0 2rem; font-family: 'DM Mono', monospace; font-size: 0.62rem; line-height: 1.65; color: rgba(255,255,255,0.75); text-align: center; max-width: 36rem; margin: 0 auto; }
-.welcome-crisis-line a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.welcome-footer { position: relative; flex-shrink: 0; width: 100%; max-width: 700px; margin: 0 auto; padding: 1rem 1rem 0.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.65rem; z-index: 2; }
+.welcome-mark { font-family: 'DM Mono', monospace; font-size: 0.48rem; letter-spacing: 0.3em; color: rgba(196,144,144,0.16); text-transform: uppercase; }
 .preview-lock { font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-dim); border: 1px solid var(--border); padding: 1.25rem 1.5rem; text-align: center; background: rgba(196,144,144,0.04); line-height: 1.6; }
 .tool-card.locked { cursor: default; }
 .tool-card.locked:hover { border-color: var(--border); }
@@ -645,12 +645,12 @@ body { font-family: 'Crimson Pro', Georgia, serif; background: var(--ink); color
 .phil-card-icon { font-size: 0.95rem; color: var(--gold-dim); margin-bottom: 0.65rem; display: block; }
 .phil-card-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.05rem; color: var(--paper); margin-bottom: 0.35rem; }
 .phil-card-text { font-size: 0.95rem; line-height: 1.65; color: var(--text-faint); }
-.phil-disclaimer { margin-top: 3rem; font-family: 'Crimson Pro', Georgia, serif; font-size: 0.95rem; font-style: italic; line-height: 1.85; color: rgba(196,144,144,0.5); text-align: center; }
+.phil-disclaimer { margin-top: 3rem; font-family: 'Crimson Pro', Georgia, serif; font-size: 0.6rem; font-style: italic; line-height: 1.85; color: rgba(196,144,144,0.5); text-align: center; opacity: 0.45; }
 .phil-disclaimer a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 
 /* TOAST & MARK */
 .toast { position: fixed; bottom: 2rem; right: 2rem; background: rgba(28,26,28,0.97); border: 1px solid var(--gold-dim); color: var(--paper); font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.7rem 1.15rem; z-index: 200; animation: fadeUp 0.3s ease; }
-.welcome-legal-links { position: fixed; bottom: 2.85rem; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 0.6rem; font-family: 'DM Mono', monospace; font-size: 0.48rem; letter-spacing: 0.22em; text-transform: uppercase; }
+.welcome-legal-links { display: flex; align-items: center; justify-content: center; gap: 0.6rem; font-family: 'DM Mono', monospace; font-size: 0.48rem; letter-spacing: 0.22em; text-transform: uppercase; }
 .welcome-legal-links a { color: rgba(196,144,144,0.28); text-decoration: none; transition: color 0.2s; }
 .welcome-legal-links a:hover { color: rgba(196,144,144,0.5); }
 .welcome-legal-links span { color: rgba(196,144,144,0.16); pointer-events: none; }
@@ -904,15 +904,14 @@ export default function Override() {
             Or explore a preview →
           </button>
         </div>
-        <p className="welcome-crisis-line">
-          Override is a self-directed program, not a crisis service. If you need immediate support, visit <a href="https://findahelpline.com" target="_blank" rel="noopener noreferrer">findahelpline.com</a>
-        </p>
-        <nav className="welcome-legal-links" aria-label="Legal">
-          <Link to="/terms">Terms</Link>
-          <span aria-hidden="true">·</span>
-          <Link to="/privacy">Privacy</Link>
-        </nav>
-        <div className="override-mark">OVERRIDE · Identity Reconstruction Program</div>
+        <footer className="welcome-footer">
+          <nav className="welcome-legal-links" aria-label="Legal">
+            <Link to="/terms">Terms</Link>
+            <span aria-hidden="true">·</span>
+            <Link to="/privacy">Privacy</Link>
+          </nav>
+          <div className="welcome-mark">OVERRIDE · Identity Reconstruction Program</div>
+        </footer>
       </div>
     );
   }
